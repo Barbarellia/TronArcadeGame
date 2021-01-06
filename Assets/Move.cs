@@ -34,8 +34,7 @@ public class Move : MonoBehaviour {
     {
 		lastWallEnd = transform.position;
 		GameObject g = Instantiate(wallPrefab, transform.position, Quaternion.identity);
-		wall = g.GetComponent<Collider2D>();
-		
+		wall = g.GetComponent<Collider2D>();		
 	}
 
 	void fitColliderBetween(Collider2D co, Vector2 a, Vector2 b)
@@ -49,21 +48,6 @@ public class Move : MonoBehaviour {
 			co.transform.localScale = new Vector2(1, dist + 1);
     }
 
-	void checkDistanceToCollider()
-    {
-		boundSize = sprite.bounds.size;
-		Vector2 playerPosition = GetComponent<Rigidbody2D>().transform.position;
-		Vector2 wallPosition = GetComponent<Collider2D>().transform.position;
-
-		for(int i = 0; i < boundSize.x/2; i++)
-        {
-			if(i == wall.transform.position.x)
-            {
-				//do sth
-            }
-        }
-    }
-
 	void OnTriggerEnter2D(Collider2D co)
     {
         if (co != wall)
@@ -75,9 +59,7 @@ public class Move : MonoBehaviour {
 
 	void Start () 
 	{
-		MoveUp();
-		checkDistanceToCollider();
-		
+		MoveUp();		
 	}
 	
 	// Update is called once per frame
@@ -92,7 +74,6 @@ public class Move : MonoBehaviour {
 		}
 		else if (Input.GetKeyDown(rightKey) && GetComponent<Rigidbody2D>().velocity != -Vector2.right * speed)
         {
-			checkDistanceToCollider();
 			MoveRight();
 		}
 		else if (Input.GetKeyDown(leftKey) && GetComponent<Rigidbody2D>().velocity != Vector2.right * speed)
@@ -100,7 +81,6 @@ public class Move : MonoBehaviour {
 			MoveLeft();
 		}
 
-		//checkBounds();
 		fitColliderBetween(wall, lastWallEnd, transform.position);
 	}
 
@@ -132,39 +112,24 @@ public class Move : MonoBehaviour {
 		currDirection = Direction.LEFT;
 	}
 
-	public void SetSuggestion(Direction d)
-	{
-		print(name + " tower info: " + d);
-		this.lastSuggestion = d;
-	}
+    //public void SetSuggestion(Direction d)
+    //{
+    //	print(name + " tower info: " + d);
+    //	this.lastSuggestion = d;
+    //}
 
-	public Direction GetSuggestion()
-	{
-		return this.lastSuggestion;
-	}
+    //public Direction GetSuggestion()
+    //{
+    //	return this.lastSuggestion;
+    //}
 
-	public Direction GetDirection()
-	{
-		return this.currDirection;
-	}
+    public Direction GetDirection()
+    {
+        return this.currDirection;
+    }
 
-	public Transform GetPosition()
-	{
-		return transform;
-	}
+    //public Transform GetPosition()
+    //{
+    //	return transform;
+    //}
 }
-
-
-//void checkBounds()
-//   {
-//	boundSize = sprite.bounds.size;
-
-//	if (GetComponent<Rigidbody2D>().position.x > boundSize.x / 2 - 1 || GetComponent<Rigidbody2D>().position.y > boundSize.y / 2 - 1
-//		|| GetComponent<Rigidbody2D>().position.x < -boundSize.x / 2 + 1 || GetComponent<Rigidbody2D>().position.y < -boundSize.y / 2 + 1)
-//	{
-//		print("Player lost: " + name);
-//		Destroy(gameObject);
-//		//new WaitForSeconds(30);
-//		//Application.Quit();
-//	}
-//}
