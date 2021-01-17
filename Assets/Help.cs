@@ -6,11 +6,12 @@ using UnityEngine;
 public class Help : MonoBehaviour 
 {
 	Move playerMove = new Move();
-	//protected List<Direction> legalDir;
 	protected List<float> distances;
-
+	protected List<Direction> legalDir;
 	protected Direction currDir;
 	protected Vector2 playerPosition;
+
+	protected Direction bestDir;
 
 	protected Vector2 DirToVector(Direction dir)
 	{
@@ -37,7 +38,7 @@ public class Help : MonoBehaviour
 		playerPosition = transform.position;
 		currDir = playerMove.GetDirection();
 
-		List<Direction> legalDir = CheckLegalDirections(currDir);
+		legalDir = CheckLegalDirections(currDir);
 	}
 
 	void FixedUpdate()
@@ -45,7 +46,7 @@ public class Help : MonoBehaviour
 		playerPosition = transform.position;
 		currDir = playerMove.GetDirection();
 
-		List<Direction> legalDir = CheckLegalDirections(currDir);
+		legalDir = CheckLegalDirections(currDir);
 		distances = CheckDistances();
 	}
 
@@ -69,14 +70,45 @@ public class Help : MonoBehaviour
 		return this.distances;
     }
 
+	public List<Direction> GetLegalDirections()
+    {
+		return this.legalDir;
+    }
+
+	public Direction GetBestDirection()
+    {
+		return this.bestDir;
+    }
+
 	protected List<float> CheckDistances()
     {
-		float distUp = CheckDistanceUp();
-		float distDown = CheckDistanceDown();
-		float distRight = CheckDistanceRight();
-		float distLeft = CheckDistanceLeft();
+		List<float> distancesInAllDirections = new List<float>();
+		
 
-		List<float> distancesInAllDirections = new List<float> { distUp, distDown, distLeft, distRight};
+		if (currDir.Equals(Direction.UP) || currDir.Equals(Direction.DOWN))
+        {
+			float distRight = CheckDistanceRight();
+			float distLeft = CheckDistanceLeft();
+			if (distRight > distLeft)
+				bestDir = Direction.RIGHT;
+			else bestDir = Direction.LEFT;
+
+			distancesInAllDirections.Add(distLeft);
+			distancesInAllDirections.Add(distRight);
+			
+		}
+		else if(currDir.Equals(Direction.RIGHT) || currDir.Equals(Direction.LEFT))
+        {
+			float distUp = CheckDistanceUp();
+			float distDown = CheckDistanceDown();
+			if (distUp > distDown)
+				bestDir = Direction.UP;
+			else bestDir = Direction.DOWN;
+
+			distancesInAllDirections.Add(distUp);
+			distancesInAllDirections.Add(distDown);
+		}
+				
 		return distancesInAllDirections;
 	}
 

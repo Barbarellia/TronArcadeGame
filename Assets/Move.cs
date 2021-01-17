@@ -27,8 +27,26 @@ public class Move : MonoBehaviour {
 	protected Vector2 lastWallEnd;
 	protected Vector2 boundSize;
 	protected Direction currDirection;
-	//protected Direction? lastSuggestion;
+	protected Direction lastSuggestion;
 
+	protected Vector2 DirToVector(Direction dir)
+	{
+		Vector2 v;
+		switch (dir)
+		{
+			case Direction.UP:
+				return v = Vector2.up;
+			case Direction.DOWN:
+				return v = -Vector2.up;
+			case Direction.LEFT:
+				return v = -Vector2.right;
+			case Direction.RIGHT:
+				return v = Vector2.right;
+			default:
+				return v = Vector2.up;
+		}
+
+	}
 
 	void spawnWall()
     {
@@ -82,16 +100,17 @@ public class Move : MonoBehaviour {
 			MoveLeft();
 		}
 
-		//else if (GetSuggestion() != null)
-  //      {
-		//	//vector2 - get suggestion and convert to vector
-		//	GetComponent<Rigidbody2D>().velocity = Vector2.up * speed;
-		//	spawnWall();
-		//	Direction suggestedDir = lastSuggestion;
-		//	currDirection = suggestedDir;
-		//}
+        //else
+        //{
+        //    Vector2 newVector = DirToVector(lastSuggestion);
+        //    //vector2 - get suggestion and convert to vector
+        //    GetComponent<Rigidbody2D>().velocity = newVector * speed;
+        //    spawnWall();
+        //    Direction suggestedDir = lastSuggestion;
+        //    currDirection = suggestedDir;
+        //}
 
-		fitColliderBetween(wall, lastWallEnd, transform.position);
+        fitColliderBetween(wall, lastWallEnd, transform.position);
 	}
 
 	protected void MoveUp()
@@ -122,16 +141,16 @@ public class Move : MonoBehaviour {
 		currDirection = Direction.LEFT;
 	}
 
-    //public void SetSuggestion(Direction d)
-    //{
-    //    print(name + " tower info: " + d);
-    //    this.lastSuggestion = d;
-    //}
+    public void SetSuggestion(Direction d)
+    {
+        print(name + " tower info: " + d);
+        this.lastSuggestion = d;
+    }
 
-    //public Direction? GetSuggestion()
-    //{
-    //    return this.lastSuggestion;
-    //}
+    public Direction GetSuggestion()
+    {
+        return this.lastSuggestion;
+    }
 
     public Direction GetDirection()
     {
