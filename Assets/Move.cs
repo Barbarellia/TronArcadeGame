@@ -27,7 +27,7 @@ public class Move : MonoBehaviour {
 	protected Vector2 lastWallEnd;
 	protected Vector2 boundSize;
 	protected Direction currDirection;
-	protected Direction lastSuggestion;
+	//protected Direction? lastSuggestion;
 
 
 	void spawnWall()
@@ -59,11 +59,12 @@ public class Move : MonoBehaviour {
 
 	void Start () 
 	{
-		MoveUp();		
+		MoveUp();
 	}
 	
 	// Update is called once per frame
-	void Update () {
+	void Update () 
+	{
 		if (Input.GetKeyDown(upKey) && GetComponent<Rigidbody2D>().velocity != -Vector2.up * speed)
         {
 			MoveUp();
@@ -80,6 +81,15 @@ public class Move : MonoBehaviour {
         {
 			MoveLeft();
 		}
+
+		//else if (GetSuggestion() != null)
+  //      {
+		//	//vector2 - get suggestion and convert to vector
+		//	GetComponent<Rigidbody2D>().velocity = Vector2.up * speed;
+		//	spawnWall();
+		//	Direction suggestedDir = lastSuggestion;
+		//	currDirection = suggestedDir;
+		//}
 
 		fitColliderBetween(wall, lastWallEnd, transform.position);
 	}
@@ -114,13 +124,13 @@ public class Move : MonoBehaviour {
 
     //public void SetSuggestion(Direction d)
     //{
-    //	print(name + " tower info: " + d);
-    //	this.lastSuggestion = d;
+    //    print(name + " tower info: " + d);
+    //    this.lastSuggestion = d;
     //}
 
-    //public Direction GetSuggestion()
+    //public Direction? GetSuggestion()
     //{
-    //	return this.lastSuggestion;
+    //    return this.lastSuggestion;
     //}
 
     public Direction GetDirection()

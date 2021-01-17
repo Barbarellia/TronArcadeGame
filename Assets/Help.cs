@@ -11,7 +11,6 @@ public class Help : MonoBehaviour
 
 	protected Direction currDir;
 	protected Vector2 playerPosition;
-	protected static System.Random rnd;
 
 	protected Vector2 DirToVector(Direction dir)
 	{
@@ -35,8 +34,6 @@ public class Help : MonoBehaviour
 	// Use this for initialization
 	void Start()
     {
-		//List<Direction> legalDir = new List<Direction>();
-		List<float> distances = new List<float>();
 		playerPosition = transform.position;
 		currDir = playerMove.GetDirection();
 
@@ -45,14 +42,10 @@ public class Help : MonoBehaviour
 
 	void FixedUpdate()
     {
-		//List<Direction> legalDir = new List<Direction>();
-		List<float> distances = new List<float>();
-
 		playerPosition = transform.position;
 		currDir = playerMove.GetDirection();
 
 		List<Direction> legalDir = CheckLegalDirections(currDir);
-		//distances = CalculateDistances(legalDir);
 		distances = CheckDistances();
 	}
 
@@ -71,6 +64,10 @@ public class Help : MonoBehaviour
 		return legalDirections;
     }
 
+	public List<float> GetDistances()
+    {
+		return this.distances;
+    }
 
 	protected List<float> CheckDistances()
     {
@@ -147,80 +144,56 @@ public class Help : MonoBehaviour
 		}
 		return 0f;
 	}
-
-
-	protected List<float> CalculateDistances(List<Direction> legalDirections)
-	{
-		List<float> distances = new List<float>();
-
-		foreach (Direction d in legalDirections)
-		{
-			Vector2 dir = DirToVector(d);
-			float dist = CheckDistance(playerPosition, dir);
-			distances.Add(dist);
-		}
-		return distances;
-	}
-
-	protected float CheckDistance(Vector2 playerPosition, Vector2 directionVector)
-    {
-		RaycastHit2D hit = Physics2D.Raycast(playerPosition, directionVector);
-		float distance=0f;
-		//if the cast hits sth
-		if (hit.collider != null)
-		{
-            if (Vector2.Equals(directionVector, Vector2.up) == true)
-            {
-				Vector2 v1 = playerPosition;
-				v1.y += 1;
-				distance = Vector2.Distance(hit.point, v1);
-				//return distance;
-			}
-            else if (Vector2.Equals(directionVector, Vector2.down)==true)
-			{
-				Vector2 v2 = playerPosition;
-				v2.y -= 1;
-				distance = Vector2.Distance(hit.point, v2);
-				//return distance;
-			}
-			else if (Vector2.Equals(directionVector, Vector2.left)==true)
-			{
-				Vector2 v3 = playerPosition;
-				v3.x -= 1;
-				distance = Vector2.Distance(hit.point, v3);
-				//return distance;
-			}
-			else if (Vector2.Equals(directionVector, Vector2.right)==true)
-			{
-				Vector2 v4 = playerPosition;
-				v4.x += 1;
-				distance = Vector2.Distance(hit.point, v4);
-				//return distance;
-			}						
-		}
-		return distance;		
-	}
-
-	protected void RemoveWorstDirection()
-    {
-		distances.Sort();
-		distances.RemoveAt(0);
-	}
-
-	protected Direction PickRandomDirection()
-	{
-		int r = rnd.Next(distances.Count);
-		return (Direction)distances[r];
-	}
-
-	protected void CheckIfDistanceTooSmall()
-	{
-		foreach (float d in distances)
-		{
-			if (d < 10)
-			{
-				//tower activated
-			}
-		}
-	}
 }
+
+//protected List<float> CalculateDistances(List<Direction> legalDirections)
+//{
+//	List<float> distances = new List<float>();
+
+//	foreach (Direction d in legalDirections)
+//	{
+//		Vector2 dir = DirToVector(d);
+//		float dist = CheckDistance(playerPosition, dir);
+//		distances.Add(dist);
+//	}
+//	return distances;
+//}
+
+//protected float CheckDistance(Vector2 playerPosition, Vector2 directionVector)
+//   {
+//	RaycastHit2D hit = Physics2D.Raycast(playerPosition, directionVector);
+//	float distance=0f;
+//	//if the cast hits sth
+//	if (hit.collider != null)
+//	{
+//           if (Vector2.Equals(directionVector, Vector2.up) == true)
+//           {
+//			Vector2 v1 = playerPosition;
+//			v1.y += 1;
+//			distance = Vector2.Distance(hit.point, v1);
+//			//return distance;
+//		}
+//           else if (Vector2.Equals(directionVector, Vector2.down)==true)
+//		{
+//			Vector2 v2 = playerPosition;
+//			v2.y -= 1;
+//			distance = Vector2.Distance(hit.point, v2);
+//			//return distance;
+//		}
+//		else if (Vector2.Equals(directionVector, Vector2.left)==true)
+//		{
+//			Vector2 v3 = playerPosition;
+//			v3.x -= 1;
+//			distance = Vector2.Distance(hit.point, v3);
+//			//return distance;
+//		}
+//		else if (Vector2.Equals(directionVector, Vector2.right)==true)
+//		{
+//			Vector2 v4 = playerPosition;
+//			v4.x += 1;
+//			distance = Vector2.Distance(hit.point, v4);
+//			//return distance;
+//		}						
+//	}
+//	return distance;		
+//}	
