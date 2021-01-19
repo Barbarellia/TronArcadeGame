@@ -1,19 +1,22 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
-public class Help : MonoBehaviour 
+public struct DistanceDirectionPair
 {
-	Move playerMove = new Move();
-	protected List<float> distances;
-	protected List<Direction> legalDir;
-	protected Direction currDir;
-	protected Vector2 playerPosition;
+	public Direction Dir { get; set; }
+	public float Distance { get; set; }
+}
 
-	protected Direction bestDir;
+public class Help : MonoBehaviour
+{
+	private Move playerMove;
 
-	protected Vector2 DirToVector(Direction dir)
+	private Direction? suggestedDirection = null;
+
+	public static Vector2 DirToVector(Direction dir)
 	{
 		Vector2 v;
 		switch (dir)
@@ -34,198 +37,114 @@ public class Help : MonoBehaviour
 
 	// Use this for initialization
 	void Start()
-    {
-		playerPosition = transform.position;
-		currDir = playerMove.GetDirection();
-
-		legalDir = CheckLegalDirections(currDir);
+	{
+		playerMove = GetComponent<Move>();
+		InvokeRepeating("Decide", 1, 0.1f);
 	}
 
-	void FixedUpdate()
-    {
-		playerPosition = transform.position;
-		currDir = playerMove.GetDirection();
+	void Decide()
+	{
+		var playerPosition = transform.position;
 
-		legalDir = CheckLegalDirections(currDir);
-		distances = CheckDistances();
+		var legalDir = GetLegalDirections();
+		//Debug.Log(string.Join(", ", legalDir.Select(d => d.ToString())));
+		var pairs = CheckDistances(legalDir);
+
+		ApplySuggestionIfNeeded(pairs);
+
+		float max = pairs.Max(pair => pair.Distance);
+		Direction dir = pairs.Find(d => d.Distance == max).Dir;
+		playerMove.SetDir(dir);
+		//Debug.Log(max + " " +dir);
 	}
 
-	protected List<Direction> CheckLegalDirections(Direction currDir)
-    {
-		List<Direction> legalDirections = new List<Direction>();
-		legalDirections.Clear();
-		foreach(Direction dir in (Direction[]) Enum.GetValues(typeof(Direction)))
-        {
-            if (dir != currDir && DirToVector(dir) != -DirToVector(currDir))
-            {
-				legalDirections.Add(dir);
-            }
-        }
+	private void ApplySuggestionIfNeeded(List<DistanceDirectionPair> pairs)
+	{
+		if (!suggestedDirection.HasValue)
+		{
+			return;
+		}
 
-		return legalDirections;
-    }
+		var suggestedPair = pairs.Find(d => d.Dir == suggestedDirection.Value);
+		if (suggestedDirection != null)
+		{
+			suggestedPair.Distance *= 1.5f;
+		}
+		else
+		{
+			// to nie powinno mieć miejsca, wieża nie może zaproponować niedozwolonego kierunku
+		}
 
-	public List<float> GetDistances()
-    {
-		return this.distances;
-    }
+		suggestedDirection = null;
+	}
+
+	public void Suggest(Direction suggestedDirection)
+	{
+		this.suggestedDirection = suggestedDirection;
+	}
 
 	public List<Direction> GetLegalDirections()
-    {
-		return this.legalDir;
-    }
-
-	public Direction GetBestDirection()
-    {
-		return this.bestDir;
-    }
-
-	protected List<float> CheckDistances()
-    {
-		List<float> distancesInAllDirections = new List<float>();
-		
-
-		if (currDir.Equals(Direction.UP) || currDir.Equals(Direction.DOWN))
-        {
-			float distRight = CheckDistanceRight();
-			float distLeft = CheckDistanceLeft();
-			if (distRight > distLeft)
-				bestDir = Direction.RIGHT;
-			else bestDir = Direction.LEFT;
-
-			distancesInAllDirections.Add(distLeft);
-			distancesInAllDirections.Add(distRight);
-			
+	{
+		var currDir = playerMove.GetDirection();
+		List<Direction> legalDirections = new List<Direction>();
+		foreach (Direction dir in (Direction[])System.Enum.GetValues(typeof(Direction)))
+		{
+			if (DirToVector(dir) != -DirToVector(currDir))
+			{
+				legalDirections.Add(dir);
+			}
 		}
-		else if(currDir.Equals(Direction.RIGHT) || currDir.Equals(Direction.LEFT))
-        {
-			float distUp = CheckDistanceUp();
-			float distDown = CheckDistanceDown();
-			if (distUp > distDown)
-				bestDir = Direction.UP;
-			else bestDir = Direction.DOWN;
 
-			distancesInAllDirections.Add(distUp);
-			distancesInAllDirections.Add(distDown);
-		}
-				
-		return distancesInAllDirections;
+		return legalDirections;
 	}
 
-
-	protected float CheckDistanceUp()
+	protected List<DistanceDirectionPair> CheckDistances(List<Direction> legalDirs)
 	{
-		Vector2 playerPosition = transform.position;
-		playerPosition.y += 1;
-		//cast a ray right
-		RaycastHit2D hit = Physics2D.Raycast(playerPosition, Vector2.up);
+		List<DistanceDirectionPair> pairs = new List<DistanceDirectionPair>();
 
-		//if the cast hits sth
-		if (hit.collider != null)
+		foreach (Direction d in legalDirs)
 		{
-			float distance = Vector2.Distance(hit.point, playerPosition);
-			return distance;
+			pairs.Add(new DistanceDirectionPair
+			{
+				Dir = d,
+				Distance = GetDistance(transform.position, d) * UnityEngine.Random.Range(0.6f, 1.6f),
+			});
 		}
-		return 0f;
+		return pairs;
 	}
 
-	protected float CheckDistanceDown()
+	public static float GetDistance(Vector3 origin, Direction dir)
 	{
-		Vector2 playerPosition = transform.position;
-		playerPosition.y -= 1;
-		//cast a ray right
-		RaycastHit2D hit = Physics2D.Raycast(playerPosition, -Vector2.up);
+		var dirVec = DirToVector(dir);
+		var dirVecPlus90 = new Vector2(-dirVec.y, dirVec.x);
+		RaycastHit2D hit1 = Physics2D.Raycast(origin + (Vector3)dirVec + (Vector3)dirVecPlus90, dirVec);
+		RaycastHit2D hit2 = Physics2D.Raycast(origin + (Vector3)dirVec - (Vector3)dirVecPlus90, dirVec);
 
-		//if the cast hits sth
-		if (hit.collider != null)
+		if (hit1.collider != null && hit2.collider == null)
 		{
-			float distance = Vector2.Distance(hit.point, playerPosition);
-			return distance;
+			Debug.DrawLine(origin, hit1.point);
+			return hit1.distance;
 		}
-		return 0f;
-	}
-
-	protected float CheckDistanceRight()
-	{
-		Vector2 playerPosition = transform.position;
-		playerPosition.x += 1;
-		//cast a ray right
-		RaycastHit2D hit = Physics2D.Raycast(playerPosition, Vector2.right);
-
-		//if the cast hits sth
-		if (hit.collider != null)
+		else if (hit1.collider == null && hit2.collider != null)
 		{
-			float distance = Vector2.Distance(hit.point, playerPosition);
-			return distance;
+			Debug.DrawLine(origin, hit2.point);
+			return hit2.distance;
 		}
-		return 0f;
-	}
-
-	protected float CheckDistanceLeft()
-	{
-		Vector2 playerPosition = transform.position;
-		playerPosition.y -= 1;
-		//cast a ray right
-		RaycastHit2D hit = Physics2D.Raycast(playerPosition, -Vector2.right);
-
-		//if the cast hits sth
-		if (hit.collider != null)
+		else if (hit1.collider != null && hit2.collider != null)
 		{
-			float distance = Vector2.Distance(hit.point, playerPosition);
-			return distance;
+			RaycastHit2D hit;
+			if (hit1.distance < hit2.distance)
+			{
+				hit = hit1;
+			}
+			else
+			{
+				hit = hit2;
+			}
+
+			Debug.DrawLine(origin, hit.point);
+			return hit.distance;
 		}
-		return 0f;
+		return Mathf.NegativeInfinity;
 	}
 }
-
-//protected List<float> CalculateDistances(List<Direction> legalDirections)
-//{
-//	List<float> distances = new List<float>();
-
-//	foreach (Direction d in legalDirections)
-//	{
-//		Vector2 dir = DirToVector(d);
-//		float dist = CheckDistance(playerPosition, dir);
-//		distances.Add(dist);
-//	}
-//	return distances;
-//}
-
-//protected float CheckDistance(Vector2 playerPosition, Vector2 directionVector)
-//   {
-//	RaycastHit2D hit = Physics2D.Raycast(playerPosition, directionVector);
-//	float distance=0f;
-//	//if the cast hits sth
-//	if (hit.collider != null)
-//	{
-//           if (Vector2.Equals(directionVector, Vector2.up) == true)
-//           {
-//			Vector2 v1 = playerPosition;
-//			v1.y += 1;
-//			distance = Vector2.Distance(hit.point, v1);
-//			//return distance;
-//		}
-//           else if (Vector2.Equals(directionVector, Vector2.down)==true)
-//		{
-//			Vector2 v2 = playerPosition;
-//			v2.y -= 1;
-//			distance = Vector2.Distance(hit.point, v2);
-//			//return distance;
-//		}
-//		else if (Vector2.Equals(directionVector, Vector2.left)==true)
-//		{
-//			Vector2 v3 = playerPosition;
-//			v3.x -= 1;
-//			distance = Vector2.Distance(hit.point, v3);
-//			//return distance;
-//		}
-//		else if (Vector2.Equals(directionVector, Vector2.right)==true)
-//		{
-//			Vector2 v4 = playerPosition;
-//			v4.x += 1;
-//			distance = Vector2.Distance(hit.point, v4);
-//			//return distance;
-//		}						
-//	}
-//	return distance;		
-//}	

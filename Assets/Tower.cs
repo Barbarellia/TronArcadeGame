@@ -1,113 +1,119 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
-public class Tower : MonoBehaviour {
+public class Tower : MonoBehaviour
+{
+	private Help help1;
+	private Help help2;
 
-	protected Move move1;
-	protected Move move2;
-	protected Help help1;
-	protected Help help2;
-
-
-	protected List<float> currDist1;
-	protected List<float> currDist2;
-
-	protected Direction currentDirection1;
-	protected Direction currentDirection2;
-
-	protected List<Direction> legalDir1;
-	protected List<Direction> legalDir2;
-
-	private GameObject tower;
-
-	protected static System.Random rnd;
-
-	// Use this for initialization
-	void Start () {
-		move1 = GameObject.Find("player_cyan").GetComponent<Move>();
-		move2 = GameObject.Find("player_pink").GetComponent<Move>();
-		currentDirection1 = move1.GetDirection();
-		currentDirection2 = move2.GetDirection();
-
+	void Start()
+	{
 		help1 = GameObject.Find("player_cyan").GetComponent<Help>();
 		help2 = GameObject.Find("player_pink").GetComponent<Help>();
 
-		
+		InvokeRepeating("Decide", 0.95f, 0.5f);
 	}
 
-	// Update is called once per frame
-	void FixedUpdate () {
-
-		if (gameObject != null)
+	public void Decide()
+	{
+		if (help1 == null || help2 == null)
 		{
-			// Do something  
-			Destroy(gameObject);
+			CancelInvoke("Decide");
+			return;
 		}
 
-		currentDirection1 = move1.GetDirection();
-		currentDirection2 = move2.GetDirection();
+		var distancePairs1 = GetDistancePairs(help1);
+		var distancePairs2 = GetDistancePairs(help2);
 
-		currDist1 = help1.GetDistances();
-		currDist2 = help2.GetDistances();
-
-		legalDir1 = help1.GetLegalDirections();
-		legalDir2 = help2.GetLegalDirections();
-
-		Direction best = help1.GetBestDirection();
-
-        if (currDist1[0] < 20 || currDist1[1] < 20)
-        {
-            //if (best != currentDirection1)
-            //    move1.SetSuggestion(best);
-            Direction newDir = PickRandomDirection();
-            move1.SetSuggestion(best);
-        }
-
-
-
-		//Direction newDir = PickRandomDirection();
-		//move1.SetSuggestion(best);
-		//float maxDist = PickBestDirection();
+		// sumujemy wszystkie odległości, a nie tylko te w danym kierunku
+		var sum1 = distancePairs1.Sum(pair => pair.Distance);
+		var sum2 = distancePairs2.Sum(pair => pair.Distance);
+		if (sum1 > sum2)
+		{
+			Debug.Log("help player " + help2.name);
+			Direction maxDirection = GetMaxDirection(distancePairs2);
+			help2.Suggest(maxDirection);
+		}
+		else
+		{
+			Debug.Log("help player " + help1.name);
+			Direction maxDirection = GetMaxDirection(distancePairs1);
+			help1.Suggest(maxDirection);
+		}
 	}
 
+	private Direction GetMaxDirection(List<DistanceDirectionPair> pairs)
+	{
+		float max = pairs.Max(d => d.Distance);
+		return pairs.Find(d => d.Distance == max).Dir;
+	}
 
-	protected Direction PickRandomDirection()
-    {
-		//Direction d1;
-		//int randomint = rnd.Next(0, 2);
-		////int r = rnd.Next(legalDir1.Count - 1);
-		////sprawdz ktory kierunek lepszy
-		//if (randomint == 0)
-		//{
-		//	d1 = legalDir1[0];
-		//}
-		//else d1 = legalDir1[1];
+	private List<DistanceDirectionPair> GetDistancePairs(Help move)
+	{
+		var legalDirections = move.GetLegalDirections();
 
-        return legalDir1[1];
-    }
+		List<DistanceDirectionPair> pairs = new List<DistanceDirectionPair>();
 
-    //  protected float PickBestDirection()
-    //  {
-    //currDist1.Sort();
-    //int n = currDist1.Count;
+		foreach (Direction d in legalDirections)
+		{
+			pairs.Add(new DistanceDirectionPair
+			{
+				Dir = d,
+				Distance = GetFancyDistance(move.transform.position, d),
+			});
+		}
+		return pairs;
+	}
 
-    //return currDist1[n-1];
-    //  }
+	private float GetFancyDistance(Vector3 origin, Direction d)
+	{
+		var hit = GetHit(origin, d);
+		Direction right = RightOf(d);
+		Direction left = LeftOf(d);
+		Vector2 newOrigin = hit.point - Help.DirToVector(d);
+		return hit.distance + GetDistance(newOrigin, right) + GetDistance(newOrigin, left);
+	}
 
-    //public void SetNewDirection(Direction newDirection)
-    //   {
-    //	move.SetSuggestion(newDirection);
-    //   }
+	private RaycastHit2D GetHit(Vector3 origin, Direction dir)
+	{
+		var dirVec = Help.DirToVector(dir);
+		RaycastHit2D hit = Physics2D.Raycast(origin + (Vector3)dirVec, dirVec);
 
-    //protected void CheckIfDistanceTooSmall()
-    //{
-    //	foreach (float d in currDist1)
-    //	{
-    //		if (d < 10)
-    //		{
-    //			//pick best direction
-    //		}
-    //	}
-    //}
+		if (hit.collider != null)
+		{
+			Debug.DrawLine(origin + (Vector3)dirVec, hit.point, Color.yellow, 0.1f);
+			return hit;
+		}
+		// nie powinno się zdarzyć, bo jesteśmy wewnątrz kwadratu i teoretycznie zawsze raycast w coś trafi
+		return default(RaycastHit2D);
+	}
+
+	private float GetDistance(Vector3 origin, Direction dir)
+	{
+		return GetHit(origin, dir).distance;
+	}
+
+	private Direction LeftOf(Direction d)
+	{
+		switch (d)
+		{
+			case Direction.UP:
+				return Direction.LEFT;
+			case Direction.DOWN:
+				return Direction.RIGHT;
+			case Direction.LEFT:
+				return Direction.DOWN;
+			case Direction.RIGHT:
+				return Direction.UP;
+		}
+		throw new ArgumentOutOfRangeException();
+	}
+
+	private Direction RightOf(Direction d)
+	{
+		// hmm
+		return LeftOf(LeftOf(LeftOf(d)));
+	}
 }
